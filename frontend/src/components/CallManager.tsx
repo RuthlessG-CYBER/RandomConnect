@@ -69,74 +69,88 @@ export default function CallManager() {
   useEffect(() => {
     if (!user) return;
 
-    const wsUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
-      .replace('http', 'ws')
-      .replace('/api', '');
+    let reconnectTimer: NodeJS.Timeout;
+
+    const connectWebSocket = () => {
+      const wsUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
+        .replace('http', 'ws')
+        .replace('/api', '');
+        
+      ws.current = new WebSocket(wsUrl);
       
-    ws.current = new WebSocket(wsUrl);
-    
-    ws.current.onopen = () => {
-      const authStorage = localStorage.getItem('auth-storage');
-      if (authStorage) {
+      ws.current.onopen = () => {
+        console.log('WebSocket connected');
+        const authStorage = localStorage.getItem('auth-storage');
+        if (authStorage) {
+          try {
+            const token = JSON.parse(authStorage).state?.accessToken;
+            if (token) ws.current?.send(JSON.stringify({ type: 'auth', token }));
+          } catch (e) {}
+        }
+      };
+
+      ws.current.onmessage = async (event) => {
         try {
-          const token = JSON.parse(authStorage).state?.accessToken;
-          if (token) ws.current?.send(JSON.stringify({ type: 'auth', token }));
-        } catch (e) {}
-      }
+          const data = JSON.parse(event.data);
+          
+          switch (data.type) {
+            case 'call_incoming':
+              setCallState({
+                id: data.callId,
+                callerVirtualNumber: data.callerVirtualNumber,
+                status: 'incoming',
+                isCaller: false
+              });
+              break;
+              
+            case 'call_accepted':
+              if (callState?.isCaller) {
+                setCallState(prev => prev ? { ...prev, status: 'active' } : null);
+                setupWebRTC(data.callId, true);
+              }
+              break;
+              
+            case 'call_rejected':
+            case 'call_ended':
+              cleanupCall();
+              break;
+              
+            case 'webrtc_offer':
+              if (!peerConnection.current) await setupWebRTC(callState!.id, false);
+              await peerConnection.current?.setRemoteDescription(new RTCSessionDescription(data.signal));
+              const answer = await peerConnection.current?.createAnswer();
+              await peerConnection.current?.setLocalDescription(answer);
+              ws.current?.send(JSON.stringify({
+                type: 'webrtc_answer',
+                callId: callState!.id,
+                signal: answer
+              }));
+              break;
+              
+            case 'webrtc_answer':
+              await peerConnection.current?.setRemoteDescription(new RTCSessionDescription(data.signal));
+              break;
+              
+            case 'webrtc_ice':
+              await peerConnection.current?.addIceCandidate(new RTCIceCandidate(data.signal));
+              break;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
+      ws.current.onclose = () => {
+        console.log('WebSocket disconnected, reconnecting in 3s...');
+        reconnectTimer = setTimeout(connectWebSocket, 3000);
+      };
     };
 
-    ws.current.onmessage = async (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        switch (data.type) {
-          case 'call_incoming':
-            setCallState({
-              id: data.callId,
-              callerVirtualNumber: data.callerVirtualNumber,
-              status: 'incoming',
-              isCaller: false
-            });
-            break;
-            
-          case 'call_accepted':
-            if (callState?.isCaller) {
-              setCallState(prev => prev ? { ...prev, status: 'active' } : null);
-              setupWebRTC(data.callId, true);
-            }
-            break;
-            
-          case 'call_rejected':
-          case 'call_ended':
-            cleanupCall();
-            break;
-            
-          case 'webrtc_offer':
-            if (!peerConnection.current) await setupWebRTC(callState!.id, false);
-            await peerConnection.current?.setRemoteDescription(new RTCSessionDescription(data.signal));
-            const answer = await peerConnection.current?.createAnswer();
-            await peerConnection.current?.setLocalDescription(answer);
-            ws.current?.send(JSON.stringify({
-              type: 'webrtc_answer',
-              callId: callState!.id,
-              signal: answer
-            }));
-            break;
-            
-          case 'webrtc_answer':
-            await peerConnection.current?.setRemoteDescription(new RTCSessionDescription(data.signal));
-            break;
-            
-          case 'webrtc_ice':
-            await peerConnection.current?.addIceCandidate(new RTCIceCandidate(data.signal));
-            break;
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
+    connectWebSocket();
 
     return () => {
+      clearTimeout(reconnectTimer);
+      ws.current?.onclose && (ws.current.onclose = null);
       ws.current?.close();
     };
   }, [user, callState]);

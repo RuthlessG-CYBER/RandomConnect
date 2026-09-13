@@ -52,39 +52,50 @@ export default function MessagesPage() {
     }
     fetchConnections();
 
-    // Real-time WebSocket connection
-    const wsUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
-      .replace('http', 'ws')
-      .replace('/api', '');
+    let reconnectTimer: NodeJS.Timeout;
+
+    const connectWebSocket = () => {
+      const wsUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
+        .replace('http', 'ws')
+        .replace('/api', '');
+        
+      const ws = new WebSocket(wsUrl);
       
-    const ws = new WebSocket(wsUrl);
-    
-    ws.onopen = () => {
-      const authStorage = localStorage.getItem('auth-storage');
-      if (authStorage) {
+      ws.onopen = () => {
+        const authStorage = localStorage.getItem('auth-storage');
+        if (authStorage) {
+          try {
+            const token = JSON.parse(authStorage).state?.accessToken;
+            if (token) ws.send(JSON.stringify({ type: 'auth', token }));
+          } catch (e) {}
+        }
+      };
+
+      ws.onmessage = (event) => {
         try {
-          const token = JSON.parse(authStorage).state?.accessToken;
-          if (token) ws.send(JSON.stringify({ type: 'auth', token }));
+          const data = JSON.parse(event.data);
+          if (data.type === 'new_message') {
+            if (data.message.connectionId === selectedConnectionIdRef.current) {
+              setMessages((prev) => [...prev, data.message]);
+            }
+            fetchConnections();
+          }
         } catch (e) {}
-      }
+      };
+
+      ws.onclose = () => {
+        reconnectTimer = setTimeout(connectWebSocket, 3000);
+      };
+      
+      return ws;
     };
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'new_message') {
-          // If the message belongs to the open chat, append it!
-          if (data.message.connectionId === selectedConnectionIdRef.current) {
-            setMessages((prev) => [...prev, data.message]);
-          }
-          // Always refresh connections to update the sidebar order/unread status
-          fetchConnections();
-        }
-      } catch (e) {}
-    };
+    let activeWs = connectWebSocket();
 
     return () => {
-      ws.close();
+      clearTimeout(reconnectTimer);
+      activeWs.onclose = null;
+      activeWs.close();
     };
   }, [_hasHydrated, user, router]);
 
