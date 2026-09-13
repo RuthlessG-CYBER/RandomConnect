@@ -23,10 +23,7 @@ const server = createServer(app);
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow any origin for testing purposes right now
-    callback(null, true);
-  },
+  origin: process.env.NODE_ENV === 'production' ? 'https://randomconnect-ma3y.onrender.com' : 'http://localhost:${PORT}',
   credentials: true
 }));
 app.use(express.json());
