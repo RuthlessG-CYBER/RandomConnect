@@ -16,6 +16,12 @@ interface CallState {
 export default function CallManager() {
   const user = useAuthStore((state) => state.user);
   const [callState, setCallState] = useState<CallState | null>(null);
+  const callStateRef = useRef<CallState | null>(null);
+  
+  useEffect(() => {
+    callStateRef.current = callState;
+  }, [callState]);
+
   const [muted, setMuted] = useState(false);
   
   const ws = useRef<WebSocket | null>(null);
@@ -92,6 +98,7 @@ export default function CallManager() {
       ws.current.onmessage = async (event) => {
         try {
           const data = JSON.parse(event.data);
+          const currentCall = callStateRef.current;
           
           switch (data.type) {
             case 'call_incoming':
@@ -104,7 +111,7 @@ export default function CallManager() {
               break;
               
             case 'call_accepted':
-              if (callState?.isCaller) {
+              if (currentCall?.isCaller) {
                 setCallState(prev => prev ? { ...prev, status: 'active' } : null);
                 setupWebRTC(data.callId, true);
               }
@@ -116,13 +123,13 @@ export default function CallManager() {
               break;
               
             case 'webrtc_offer':
-              if (!peerConnection.current) await setupWebRTC(callState!.id, false);
+              if (!peerConnection.current) await setupWebRTC(currentCall!.id, false);
               await peerConnection.current?.setRemoteDescription(new RTCSessionDescription(data.signal));
               const answer = await peerConnection.current?.createAnswer();
               await peerConnection.current?.setLocalDescription(answer);
               ws.current?.send(JSON.stringify({
                 type: 'webrtc_answer',
-                callId: callState!.id,
+                callId: currentCall!.id,
                 signal: answer
               }));
               break;
@@ -153,7 +160,7 @@ export default function CallManager() {
       ws.current?.onclose && (ws.current.onclose = null);
       ws.current?.close();
     };
-  }, [user, callState]);
+  }, [user]);
 
   const setupWebRTC = async (callId: string, isInitiator: boolean) => {
     peerConnection.current = new RTCPeerConnection({
@@ -246,51 +253,51 @@ export default function CallManager() {
     }
   };
 
-  if (!callState) {
-    return <audio ref={remoteAudioRef} autoPlay className="hidden" />;
-  }
-
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <>
       <audio ref={remoteAudioRef} autoPlay className="hidden" />
       
-      <div className="bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-slate-800">
-        <div className="w-24 h-24 bg-indigo-600 rounded-full mx-auto mb-6 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-          <span className="text-3xl font-bold text-white">
-            {callState.isCaller ? callState.calleeVirtualNumber?.[0] : callState.callerVirtualNumber[0]}
-          </span>
-        </div>
-        
-        <h2 className="text-2xl font-semibold text-white mb-2">
-          {callState.isCaller ? callState.calleeVirtualNumber : callState.callerVirtualNumber}
-        </h2>
-        
-        <p className="text-slate-400 mb-8 capitalize">
-          {callState.status === 'incoming' ? 'Incoming Call...' : callState.status === 'ringing' ? 'Ringing...' : '00:00'}
-        </p>
+      {callState && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-slate-800">
+            <div className="w-24 h-24 bg-indigo-600 rounded-full mx-auto mb-6 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <span className="text-3xl font-bold text-white">
+                {callState.isCaller ? callState.calleeVirtualNumber?.[0] : callState.callerVirtualNumber[0]}
+              </span>
+            </div>
+            
+            <h2 className="text-2xl font-semibold text-white mb-2">
+              {callState.isCaller ? callState.calleeVirtualNumber : callState.callerVirtualNumber}
+            </h2>
+            
+            <p className="text-slate-400 mb-8 capitalize">
+              {callState.status === 'incoming' ? 'Incoming Call...' : callState.status === 'ringing' ? 'Ringing...' : '00:00'}
+            </p>
 
-        <div className="flex items-center justify-center gap-6">
-          {callState.status === 'incoming' ? (
-            <>
-              <button onClick={rejectCall} className="w-14 h-14 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition shadow-lg shadow-red-500/20">
-                <PhoneOff className="text-white w-6 h-6" />
-              </button>
-              <button onClick={acceptCall} className="w-14 h-14 bg-emerald-500 hover:bg-emerald-600 rounded-full flex items-center justify-center transition shadow-lg shadow-emerald-500/20 animate-pulse">
-                <Phone className="text-white w-6 h-6" />
-              </button>
-            </>
-          ) : (
-            <>
-              <button onClick={toggleMute} className={`w-14 h-14 rounded-full flex items-center justify-center transition ${muted ? 'bg-red-500/20 text-red-500' : 'bg-slate-800 text-white hover:bg-slate-700'}`}>
-                {muted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
-              </button>
-              <button onClick={endCall} className="w-14 h-14 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition shadow-lg shadow-red-500/20">
-                <PhoneOff className="text-white w-6 h-6" />
-              </button>
-            </>
-          )}
+            <div className="flex items-center justify-center gap-6">
+              {callState.status === 'incoming' ? (
+                <>
+                  <button onClick={rejectCall} className="w-14 h-14 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition shadow-lg shadow-red-500/20">
+                    <PhoneOff className="text-white w-6 h-6" />
+                  </button>
+                  <button onClick={acceptCall} className="w-14 h-14 bg-emerald-500 hover:bg-emerald-600 rounded-full flex items-center justify-center transition shadow-lg shadow-emerald-500/20 animate-pulse">
+                    <Phone className="text-white w-6 h-6" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={toggleMute} className={`w-14 h-14 rounded-full flex items-center justify-center transition ${muted ? 'bg-red-500/20 text-red-500' : 'bg-slate-800 text-white hover:bg-slate-700'}`}>
+                    {muted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+                  </button>
+                  <button onClick={endCall} className="w-14 h-14 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition shadow-lg shadow-red-500/20">
+                    <PhoneOff className="text-white w-6 h-6" />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 }
