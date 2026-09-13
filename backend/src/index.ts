@@ -23,7 +23,7 @@ const server = createServer(app);
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? 'https://randomconnect-ma3y.onrender.com' : 'http://localhost:${PORT}',
+  origin: process.env.NODE_ENV === 'production' ? 'https://random-connect-frontend.vercel.app' : 'http://localhost:${PORT}',
   credentials: true
 }));
 app.use(express.json());
