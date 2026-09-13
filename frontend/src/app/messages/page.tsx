@@ -250,7 +250,14 @@ export default function MessagesPage() {
                         <p className="text-sm text-gray-500 capitalize">{selectedConnection.status}</p>
                       </div>
                     </div>
-                    <button className="text-indigo-600 hover:text-indigo-700">
+                    <button 
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('start_audio_call', {
+                          detail: { virtualNumber: selectedConnection.user.virtualNumber }
+                        }));
+                      }}
+                      className="text-indigo-600 hover:text-indigo-700"
+                    >
                       <Phone className="w-5 h-5" />
                     </button>
                   </div>

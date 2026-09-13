@@ -40,16 +40,14 @@ export default function CallsPage() {
   const initiateCall = async () => {
     if (!selectedConnection) return;
 
-    try {
-      await api.post('/calls', {
-        calleeVirtualNumber: selectedConnection.user.virtualNumber,
-        callType,
-      });
+    if (callType === 'audio') {
+      window.dispatchEvent(new CustomEvent('start_audio_call', {
+        detail: { virtualNumber: selectedConnection.user.virtualNumber }
+      }));
       setShowCallModal(false);
       setSelectedConnection(null);
-      await fetchCalls();
-    } catch (error) {
-      console.error('Failed to initiate call:', error);
+    } else {
+      alert("Video calls are not implemented yet! Try Audio.");
     }
   };
 

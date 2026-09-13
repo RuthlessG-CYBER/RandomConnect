@@ -181,18 +181,27 @@ async function handleCallEnd(client: Client, message: any) {
 }
 
 async function handleWebRTCSignal(client: Client, message: any) {
-  const { targetUserId, signal } = message;
+  const { callId, signal } = message;
 
-  const targetClient = Array.from(clients.values()).find(
-    c => c.userId === targetUserId
-  );
+  const participants = await prisma.callParticipant.findMany({
+    where: { callId },
+    select: { userId: true }
+  });
 
-  if (targetClient) {
-    targetClient.ws.send(JSON.stringify({
-      type: message.type,
-      fromUserId: client.userId,
-      signal
-    }));
+  for (const participant of participants) {
+    if (participant.userId !== client.userId) {
+      const targetClient = Array.from(clients.values()).find(
+        c => c.userId === participant.userId
+      );
+
+      if (targetClient) {
+        targetClient.ws.send(JSON.stringify({
+          type: message.type,
+          fromUserId: client.userId,
+          signal
+        }));
+      }
+    }
   }
 }
 
