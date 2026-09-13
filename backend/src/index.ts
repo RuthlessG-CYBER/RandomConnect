@@ -25,7 +25,7 @@ app.use(helmet());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
     ? process.env.FRONTEND_URL
-    : ['http://localhost:3000', 'http://localhost:3001'],
+    : ['http://localhost:3000', 'http://localhost:3001', 'https://random-connect-frontend.vercel.app'],
   credentials: true
 }));
 app.use(express.json());
