@@ -96,12 +96,12 @@ export function setupWebSocket(wss: WebSocketServer) {
 async function handleCallInvite(client: Client, message: any) {
   const { calleeVirtualNumber, callId, callType } = message;
 
-  // Find callee's WebSocket connection
-  const calleeClient = Array.from(clients.values()).find(
+  // Find all of callee's WebSocket connections
+  const calleeClients = Array.from(clients.values()).filter(
     c => c.virtualNumber === calleeVirtualNumber
   );
 
-  if (calleeClient) {
+  for (const calleeClient of calleeClients) {
     calleeClient.ws.send(JSON.stringify({
       type: 'call_incoming',
       callId,
@@ -121,11 +121,9 @@ async function handleCallAccept(client: Client, message: any) {
   });
 
   if (call) {
-    const callerClient = Array.from(clients.values()).find(
-      c => c.userId === call.callerId
-    );
+    const callerClients = Array.from(clients.values()).filter(c => c.userId === call.callerId);
 
-    if (callerClient) {
+    for (const callerClient of callerClients) {
       callerClient.ws.send(JSON.stringify({
         type: 'call_accepted',
         callId
@@ -143,11 +141,9 @@ async function handleCallReject(client: Client, message: any) {
   });
 
   if (call) {
-    const callerClient = Array.from(clients.values()).find(
-      c => c.userId === call.callerId
-    );
+    const callerClients = Array.from(clients.values()).filter(c => c.userId === call.callerId);
 
-    if (callerClient) {
+    for (const callerClient of callerClients) {
       callerClient.ws.send(JSON.stringify({
         type: 'call_rejected',
         callId
@@ -166,16 +162,12 @@ async function handleCallEnd(client: Client, message: any) {
   });
 
   for (const participant of participants) {
-    const participantClient = Array.from(clients.values()).find(
-      c => c.userId === participant.userId
-    );
+    const participantClients = Array.from(clients.values()).filter(c => c.userId === participant.userId);
 
-    if (participantClient && participantClient.userId !== client.userId) {
-      participantClient.ws.send(JSON.stringify({
-        type: 'call_ended',
-        callId,
-        endedBy: client.virtualNumber
-      }));
+    for (const participantClient of participantClients) {
+      if (participantClient.userId !== client.userId) {
+        participantClient.ws.send(JSON.stringify({ type: 'call_ended', callId, endedBy: client.virtualNumber }));
+      }
     }
   }
 }
@@ -190,24 +182,18 @@ async function handleWebRTCSignal(client: Client, message: any) {
 
   for (const participant of participants) {
     if (participant.userId !== client.userId) {
-      const targetClient = Array.from(clients.values()).find(
-        c => c.userId === participant.userId
-      );
+      const targetClients = Array.from(clients.values()).filter(c => c.userId === participant.userId);
 
-      if (targetClient) {
-        targetClient.ws.send(JSON.stringify({
-          type: message.type,
-          fromUserId: client.userId,
-          signal
-        }));
+      for (const targetClient of targetClients) {
+        targetClient.ws.send(JSON.stringify({ type: message.type, fromUserId: client.userId, signal }));
       }
     }
   }
 }
 
 export function broadcastToUser(userId: string, message: any) {
-  const client = Array.from(clients.values()).find(c => c.userId === userId);
-  if (client) {
+  const userClients = Array.from(clients.values()).filter(c => c.userId === userId);
+  for (const client of userClients) {
     client.ws.send(JSON.stringify(message));
   }
 }
