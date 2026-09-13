@@ -1,0 +1,265 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  active
+  suspended
+  deleted
+}
+
+enum NumberStatus {
+  available
+  assigned
+  cooldown
+}
+
+enum ConnectionStatus {
+  pending
+  active
+  blocked
+  removed
+}
+
+enum CallStatus {
+  ringing
+  accepted
+  rejected
+  missed
+  ended
+  failed
+}
+
+enum CallType {
+  audio
+  video
+}
+
+enum CallParticipantStatus {
+  invited
+  joined
+  declined
+  missed
+}
+
+enum GroupMemberRole {
+  owner
+  admin
+  member
+}
+
+enum GroupMemberStatus {
+  active
+  left
+  removed
+}
+
+enum GroupInviteStatus {
+  pending
+  accepted
+  declined
+  revoked
+  expired
+}
+
+model User {
+  id               String    @id @default(uuid()) @map("_id")
+  virtualNumber    String    @unique @map("virtual_number")
+  displayName      String?   @map("display_name")
+  profilePhotoUrl  String?   @map("profile_photo_url")
+  passwordHash     String    @map("password_hash")
+  publicKey        String?   @map("public_key")
+  status           UserStatus @default(active)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  connectionsA     Connection[] @relation("UserAConnections")
+  connectionsB     Connection[] @relation("UserBConnections")
+  sentMessages     Message[]    @relation("SentMessages")
+  receivedMessages Connection[] @relation("RequestedBy")
+  callsCaller      Call[]       @relation("Caller")
+  callsCallee      Call[]       @relation("Callee")
+  callParticipants CallParticipant[]
+  ownedGroups      Group[]      @relation("GroupOwner")
+  groupMemberships GroupMember[]
+  groupInvites     GroupInvite[] @relation("InvitedUser")
+  createdInvites   GroupInvite[] @relation("InvitedBy")
+  sessions         Session[]
+  devices          Device[]
+  auditLogs        AuditLog[]
+  assignedNumber   NumberPool?  @relation("AssignedUserNumber")
+
+  @@map("users")
+}
+
+model NumberPool {
+  number          String       @id @map("_id")
+  status          NumberStatus @default(available)
+  assignedUserId  String?      @unique @map("assigned_user_id")
+  assignedGroupId String?      @unique @map("assigned_group_id")
+  releasedAt      DateTime?    @map("released_at")
+  assignedUser    User?        @relation("AssignedUserNumber", fields: [assignedUserId], references: [id])
+  assignedGroup   Group?       @relation("AssignedGroupNumber", fields: [assignedGroupId], references: [id])
+
+  @@map("number_pool")
+}
+
+model Connection {
+  id           String           @id @default(uuid()) @map("_id")
+  userIdA      String           @map("user_id_a")
+  userIdB      String           @map("user_id_b")
+  status       ConnectionStatus @default(pending)
+  requestedBy  String           @map("requested_by")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  userA        User             @relation("UserAConnections", fields: [userIdA], references: [id])
+  userB        User             @relation("UserBConnections", fields: [userIdB], references: [id])
+  requestedByUser User           @relation("RequestedBy", fields: [requestedBy], references: [id])
+  messages     Message[]
+
+  @@unique([userIdA, userIdB])
+  @@map("connections")
+}
+
+model Message {
+  id           String    @id @default(uuid()) @map("_id")
+  connectionId String    @map("connection_id")
+  senderId     String    @map("sender_id")
+  body         String
+  sentAt       DateTime  @default(now()) @map("sent_at")
+  deliveredAt  DateTime? @map("delivered_at")
+  readAt       DateTime? @map("read_at")
+
+  connection   Connection @relation(fields: [connectionId], references: [id])
+  sender       User       @relation("SentMessages", fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+model Call {
+  id              String      @id @default(uuid()) @map("_id")
+  callerId        String      @map("caller_id")
+  calleeId        String?     @map("callee_id")
+  groupId         String?     @map("group_id")
+  status          CallStatus  @default(ringing)
+  startedAt       DateTime    @default(now()) @map("started_at")
+  endedAt         DateTime?   @map("ended_at")
+  durationSeconds Int?        @map("duration_seconds")
+  callType        CallType    @map("call_type")
+
+  caller          User        @relation("Caller", fields: [callerId], references: [id])
+  callee          User?       @relation("Callee", fields: [calleeId], references: [id])
+  group           Group?      @relation("GroupCalls", fields: [groupId], references: [id])
+  participants    CallParticipant[]
+
+  @@map("calls")
+}
+
+model CallParticipant {
+  id        String                @id @default(uuid()) @map("_id")
+  callId    String                @map("call_id")
+  userId    String                @map("user_id")
+  joinedAt  DateTime?             @map("joined_at")
+  leftAt    DateTime?             @map("left_at")
+  status    CallParticipantStatus @default(invited)
+
+  call      Call                  @relation(fields: [callId], references: [id])
+  user      User                  @relation(fields: [userId], references: [id])
+
+  @@map("call_participants")
+}
+
+model Group {
+  id           String   @id @default(uuid()) @map("_id")
+  name         String
+  ownerId      String   @map("owner_id")
+  groupNumber  String   @unique @map("group_number")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  owner        User     @relation("GroupOwner", fields: [ownerId], references: [id])
+  members      GroupMember[]
+  invites      GroupInvite[]
+  calls        Call[]   @relation("GroupCalls")
+  assignedNumber NumberPool? @relation("AssignedGroupNumber")
+
+  @@map("groups")
+}
+
+model GroupMember {
+  id        String            @id @default(uuid()) @map("_id")
+  groupId   String            @map("group_id")
+  userId    String            @map("user_id")
+  role      GroupMemberRole   @default(member)
+  joinedAt  DateTime          @default(now()) @map("joined_at")
+  status    GroupMemberStatus @default(active)
+
+  group     Group             @relation(fields: [groupId], references: [id])
+  user      User              @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+  @@map("group_members")
+}
+
+model GroupInvite {
+  id           String           @id @default(uuid()) @map("_id")
+  groupId      String           @map("group_id")
+  invitedUserId String          @map("invited_user_id")
+  invitedBy    String           @map("invited_by")
+  status       GroupInviteStatus @default(pending)
+  createdAt    DateTime         @default(now()) @map("created_at")
+  respondedAt  DateTime?        @map("responded_at")
+
+  group        Group            @relation(fields: [groupId], references: [id])
+  invitedUser  User             @relation("InvitedUser", fields: [invitedUserId], references: [id])
+  invitedByUser User            @relation("InvitedBy", fields: [invitedBy], references: [id])
+
+  @@map("group_invites")
+}
+
+model Session {
+  id              String   @id @default(uuid()) @map("_id")
+  userId          String   @map("user_id")
+  refreshTokenHash String  @map("refresh_token_hash")
+  deviceId        String   @map("device_id")
+  ipAddress       String?  @map("ip_address")
+  userAgent       String?  @map("user_agent")
+  expiresAt       DateTime @map("expires_at")
+  revokedAt       DateTime? @map("revoked_at")
+
+  user            User     @relation(fields: [userId], references: [id])
+
+  @@map("sessions")
+}
+
+model Device {
+  id          String   @id @default(uuid()) @map("_id")
+  userId      String   @map("user_id")
+  pushToken   String?  @map("push_token")
+  platform    String?
+  appVersion  String?  @map("app_version")
+  lastSeenAt  DateTime @default(now()) @map("last_seen_at")
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("devices")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @map("_id")
+  userId     String?  @map("user_id")
+  action     String
+  metadata   Json?
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
