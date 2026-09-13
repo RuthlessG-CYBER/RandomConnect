@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
@@ -12,12 +12,17 @@ export default function MessagesPage() {
   const user = useAuthStore((state) => state.user);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [selectedConnection, setSelectedConnection] = useState<Connection | null>(null);
+  const selectedConnectionIdRef = useRef<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [showNewChat, setShowNewChat] = useState(false);
   const [newChatNumber, setNewChatNumber] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    selectedConnectionIdRef.current = selectedConnection?.id || null;
+  }, [selectedConnection]);
 
   const fetchConnections = async () => {
     try {
@@ -45,6 +50,41 @@ export default function MessagesPage() {
       return;
     }
     fetchConnections();
+
+    // Real-time WebSocket connection
+    const wsUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
+      .replace('http', 'ws')
+      .replace('/api', '');
+      
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onopen = () => {
+      const authStorage = localStorage.getItem('auth-storage');
+      if (authStorage) {
+        try {
+          const token = JSON.parse(authStorage).state?.accessToken;
+          if (token) ws.send(JSON.stringify({ type: 'auth', token }));
+        } catch (e) {}
+      }
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'new_message') {
+          // If the message belongs to the open chat, append it!
+          if (data.message.connectionId === selectedConnectionIdRef.current) {
+            setMessages((prev) => [...prev, data.message]);
+          }
+          // Always refresh connections to update the sidebar order/unread status
+          fetchConnections();
+        }
+      } catch (e) {}
+    };
+
+    return () => {
+      ws.close();
+    };
   }, [user, router]);
 
   const selectConnection = (connection: Connection) => {

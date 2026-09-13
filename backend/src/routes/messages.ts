@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import prisma from '../utils/prisma';
 import { authenticate } from '../middleware/auth';
+import { broadcastToUser } from '../services/websocket';
 
 const router = Router();
 
@@ -70,6 +71,12 @@ router.post('/', authenticate, async (req, res) => {
           sender: { select: { id: true, virtualNumber: true, displayName: true } },
         },
       });
+    });
+
+    // Notify the recipient in real-time
+    broadcastToUser(recipient.id, {
+      type: 'new_message',
+      message
     });
 
     res.status(201).json(message);
