@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import { Phone, PhoneOff, Mic, MicOff } from 'lucide-react';
+import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff } from 'lucide-react';
 import api from '@/lib/api';
 
 interface CallState {
@@ -11,6 +11,7 @@ interface CallState {
   calleeVirtualNumber?: string;
   status: 'incoming' | 'ringing' | 'active';
   isCaller: boolean;
+  type: 'audio' | 'video';
 }
 
 export default function CallManager() {
@@ -23,26 +24,57 @@ export default function CallManager() {
   }, [callState]);
 
   const [muted, setMuted] = useState(false);
+  const [videoEnabled, setVideoEnabled] = useState(true);
+  const [duration, setDuration] = useState(0);
   
   const ws = useRef<WebSocket | null>(null);
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const localStream = useRef<MediaStream | null>(null);
+  
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Timer logic
+  useEffect(() => {
+    if (callState?.status === 'active') {
+      timerRef.current = setInterval(() => {
+        setDuration(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (!callState) setDuration(0);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [callState?.status]);
+
+  const formatDuration = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   // Global event listener to trigger outbound calls
   useEffect(() => {
     const handleStartCall = async (e: CustomEvent) => {
       const calleeNumber = e.detail.virtualNumber;
+      const callType = e.detail.type || 'audio';
+      
       if (!calleeNumber || !user || !ws.current) return;
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: true, 
+          video: callType === 'video'
+        });
         localStream.current = stream;
 
-        // Create call in DB
         const res = await api.post('/calls', {
           calleeVirtualNumber: calleeNumber,
-          callType: 'audio'
+          callType
         });
         const callId = res.data.id;
 
@@ -51,41 +83,43 @@ export default function CallManager() {
           callerVirtualNumber: user.virtualNumber,
           calleeVirtualNumber: calleeNumber,
           status: 'ringing',
-          isCaller: true
+          isCaller: true,
+          type: callType
         });
 
         ws.current.send(JSON.stringify({
           type: 'call_invite',
           calleeVirtualNumber: calleeNumber,
           callId,
-          callType: 'audio'
+          callType
         }));
 
       } catch (err) {
-        console.error('Microphone access denied or error:', err);
-        alert('Could not access microphone for the call.');
+        console.error('Media access denied or error:', err);
+        alert('Could not access microphone/camera for the call.');
       }
     };
 
-    window.addEventListener('start_audio_call' as any, handleStartCall);
-    return () => window.removeEventListener('start_audio_call' as any, handleStartCall);
+    window.addEventListener('start_call' as any, handleStartCall);
+    // Legacy support for older events
+    window.addEventListener('start_audio_call' as any, (e: any) => handleStartCall(new CustomEvent('start_call', { detail: { ...e.detail, type: 'audio' }})));
+    
+    return () => {
+      window.removeEventListener('start_call' as any, handleStartCall);
+      window.removeEventListener('start_audio_call' as any, handleStartCall);
+    };
   }, [user]);
 
   // WebSocket Setup
   useEffect(() => {
     if (!user) return;
-
     let reconnectTimer: NodeJS.Timeout;
 
     const connectWebSocket = () => {
-      const wsUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api')
-        .replace('http', 'ws')
-        .replace('/api', '');
-        
+      const wsUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').replace('http', 'ws').replace('/api', '');
       ws.current = new WebSocket(wsUrl);
       
       ws.current.onopen = () => {
-        console.log('WebSocket connected');
         const authStorage = localStorage.getItem('auth-storage');
         if (authStorage) {
           try {
@@ -106,7 +140,8 @@ export default function CallManager() {
                 id: data.callId,
                 callerVirtualNumber: data.callerVirtualNumber,
                 status: 'incoming',
-                isCaller: false
+                isCaller: false,
+                type: data.callType || 'audio'
               });
               break;
               
@@ -148,7 +183,6 @@ export default function CallManager() {
       };
 
       ws.current.onclose = () => {
-        console.log('WebSocket disconnected, reconnecting in 3s...');
         reconnectTimer = setTimeout(connectWebSocket, 3000);
       };
     };
@@ -174,6 +208,9 @@ export default function CallManager() {
     }
 
     peerConnection.current.ontrack = (event) => {
+      if (remoteVideoRef.current && callStateRef.current?.type === 'video') {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
       if (remoteAudioRef.current) {
         remoteAudioRef.current.srcObject = event.streams[0];
       }
@@ -204,7 +241,10 @@ export default function CallManager() {
   const acceptCall = async () => {
     if (!callState || !ws.current) return;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: true, 
+        video: callState.type === 'video' 
+      });
       localStream.current = stream;
       setCallState(prev => prev ? { ...prev, status: 'active' } : null);
       
@@ -213,7 +253,7 @@ export default function CallManager() {
         callId: callState.id
       }));
     } catch (err) {
-      alert('Microphone access denied');
+      alert('Microphone/Camera access denied');
       rejectCall();
     }
   };
@@ -242,60 +282,129 @@ export default function CallManager() {
       peerConnection.current.close();
       peerConnection.current = null;
     }
+    setMuted(false);
+    setVideoEnabled(true);
+    setDuration(0);
   };
 
   const toggleMute = () => {
     if (localStream.current) {
-      localStream.current.getAudioTracks().forEach(track => {
-        track.enabled = !track.enabled;
-      });
-      setMuted(!localStream.current.getAudioTracks()[0].enabled);
+      const audioTracks = localStream.current.getAudioTracks();
+      if (audioTracks.length > 0) {
+        audioTracks[0].enabled = !audioTracks[0].enabled;
+        setMuted(!audioTracks[0].enabled);
+      }
     }
   };
+
+  const toggleVideo = () => {
+    if (localStream.current) {
+      const videoTracks = localStream.current.getVideoTracks();
+      if (videoTracks.length > 0) {
+        videoTracks[0].enabled = !videoTracks[0].enabled;
+        setVideoEnabled(videoTracks[0].enabled);
+      }
+    }
+  };
+
+  // Keep local video updated
+  useEffect(() => {
+    if (localVideoRef.current && localStream.current && callState?.type === 'video') {
+      localVideoRef.current.srcObject = localStream.current;
+    }
+  }, [callState?.status, callState?.type]);
 
   return (
     <>
       <audio ref={remoteAudioRef} autoPlay className="hidden" />
       
       {callState && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-slate-800">
-            <div className="w-24 h-24 bg-indigo-600 rounded-full mx-auto mb-6 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <span className="text-3xl font-bold text-white">
-                {callState.isCaller ? callState.calleeVirtualNumber?.[0] : callState.callerVirtualNumber[0]}
-              </span>
+        <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-0 sm:p-4 backdrop-blur-xl">
+          
+          {callState.type === 'video' && callState.status === 'active' ? (
+            <div className="w-full h-full sm:rounded-3xl overflow-hidden relative flex bg-slate-900 shadow-2xl">
+              <video 
+                ref={remoteVideoRef} 
+                autoPlay 
+                playsInline 
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute top-6 right-6 w-32 sm:w-48 aspect-[3/4] bg-black rounded-xl overflow-hidden shadow-2xl border-2 border-slate-800">
+                <video 
+                  ref={localVideoRef} 
+                  autoPlay 
+                  playsInline 
+                  muted
+                  className={`w-full h-full object-cover ${!videoEnabled && 'hidden'}`}
+                />
+                {!videoEnabled && (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-800">
+                    <VideoOff className="w-8 h-8 text-slate-500" />
+                  </div>
+                )}
+              </div>
+              
+              <div className="absolute top-6 left-6 px-4 py-2 bg-black/50 backdrop-blur-md rounded-full">
+                <p className="text-white font-mono font-medium">{formatDuration(duration)}</p>
+              </div>
+              
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/50 backdrop-blur-md p-4 rounded-full shadow-2xl">
+                <button onClick={toggleMute} className={`w-14 h-14 rounded-full flex items-center justify-center transition ${muted ? 'bg-red-500 text-white' : 'bg-slate-700/80 text-white hover:bg-slate-600'}`}>
+                  {muted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+                </button>
+                <button onClick={toggleVideo} className={`w-14 h-14 rounded-full flex items-center justify-center transition ${!videoEnabled ? 'bg-red-500 text-white' : 'bg-slate-700/80 text-white hover:bg-slate-600'}`}>
+                  {!videoEnabled ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
+                </button>
+                <button onClick={endCall} className="w-14 h-14 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition shadow-lg">
+                  <PhoneOff className="w-6 h-6" />
+                </button>
+              </div>
             </div>
-            
-            <h2 className="text-2xl font-semibold text-white mb-2">
-              {callState.isCaller ? callState.calleeVirtualNumber : callState.callerVirtualNumber}
-            </h2>
-            
-            <p className="text-slate-400 mb-8 capitalize">
-              {callState.status === 'incoming' ? 'Incoming Call...' : callState.status === 'ringing' ? 'Ringing...' : '00:00'}
-            </p>
+          ) : (
+            <div className="bg-slate-900 sm:rounded-3xl p-8 w-full h-full sm:h-auto sm:max-w-sm flex flex-col items-center justify-center text-center shadow-2xl border border-slate-800">
+              <div className="w-32 h-32 bg-indigo-600 rounded-full mx-auto mb-8 flex items-center justify-center shadow-xl shadow-indigo-500/20">
+                <span className="text-5xl font-bold text-white">
+                  {callState.isCaller ? callState.calleeVirtualNumber?.[0] : callState.callerVirtualNumber[0]}
+                </span>
+              </div>
+              
+              <h2 className="text-3xl font-semibold text-white mb-2">
+                {callState.isCaller ? callState.calleeVirtualNumber : callState.callerVirtualNumber}
+              </h2>
+              
+              <p className="text-slate-400 mb-12 capitalize text-lg tracking-wide font-medium flex items-center justify-center gap-2">
+                {callState.type === 'video' && <Video className="w-4 h-4" />}
+                {callState.status === 'incoming' 
+                  ? `Incoming ${callState.type} Call...` 
+                  : callState.status === 'ringing' 
+                  ? 'Ringing...' 
+                  : formatDuration(duration)
+                }
+              </p>
 
-            <div className="flex items-center justify-center gap-6">
-              {callState.status === 'incoming' ? (
-                <>
-                  <button onClick={rejectCall} className="w-14 h-14 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition shadow-lg shadow-red-500/20">
-                    <PhoneOff className="text-white w-6 h-6" />
-                  </button>
-                  <button onClick={acceptCall} className="w-14 h-14 bg-emerald-500 hover:bg-emerald-600 rounded-full flex items-center justify-center transition shadow-lg shadow-emerald-500/20 animate-pulse">
-                    <Phone className="text-white w-6 h-6" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button onClick={toggleMute} className={`w-14 h-14 rounded-full flex items-center justify-center transition ${muted ? 'bg-red-500/20 text-red-500' : 'bg-slate-800 text-white hover:bg-slate-700'}`}>
-                    {muted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
-                  </button>
-                  <button onClick={endCall} className="w-14 h-14 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition shadow-lg shadow-red-500/20">
-                    <PhoneOff className="text-white w-6 h-6" />
-                  </button>
-                </>
-              )}
+              <div className="flex items-center justify-center gap-6 mt-auto sm:mt-0 pb-8 sm:pb-0">
+                {callState.status === 'incoming' ? (
+                  <>
+                    <button onClick={rejectCall} className="w-16 h-16 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition shadow-xl shadow-red-500/20">
+                      <PhoneOff className="text-white w-7 h-7" />
+                    </button>
+                    <button onClick={acceptCall} className="w-16 h-16 bg-emerald-500 hover:bg-emerald-600 rounded-full flex items-center justify-center transition shadow-xl shadow-emerald-500/20 animate-pulse">
+                      {callState.type === 'video' ? <Video className="text-white w-7 h-7" /> : <Phone className="text-white w-7 h-7" />}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={toggleMute} className={`w-16 h-16 rounded-full flex items-center justify-center transition shadow-lg ${muted ? 'bg-red-500/20 text-red-500' : 'bg-slate-800 text-white hover:bg-slate-700'}`}>
+                      {muted ? <MicOff className="w-7 h-7" /> : <Mic className="w-7 h-7" />}
+                    </button>
+                    <button onClick={endCall} className="w-16 h-16 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition shadow-xl shadow-red-500/20">
+                      <PhoneOff className="text-white w-7 h-7" />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </>

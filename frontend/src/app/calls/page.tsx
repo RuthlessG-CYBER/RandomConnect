@@ -41,15 +41,14 @@ export default function CallsPage() {
   const initiateCall = async () => {
     if (!selectedConnection) return;
 
-    if (callType === 'audio') {
-      window.dispatchEvent(new CustomEvent('start_audio_call', {
-        detail: { virtualNumber: selectedConnection.user.virtualNumber }
-      }));
-      setShowCallModal(false);
-      setSelectedConnection(null);
-    } else {
-      alert("Video calls are not implemented yet! Try Audio.");
-    }
+    window.dispatchEvent(new CustomEvent('start_call', {
+      detail: { 
+        virtualNumber: selectedConnection.user.virtualNumber,
+        type: callType
+      }
+    }));
+    setShowCallModal(false);
+    setSelectedConnection(null);
   };
 
   useEffect(() => {

@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
-import { MessageSquare, Send, Phone, ArrowLeft, Plus, Search, MoreVertical, Info } from 'lucide-react';
+import { MessageSquare, Send, Phone, Video, ArrowLeft, Plus, Search, MoreVertical, Info } from 'lucide-react';
 import type { Connection, Message } from '@/types';
 
 export default function MessagesPage() {
@@ -312,14 +312,25 @@ export default function MessagesPage() {
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => {
-                      window.dispatchEvent(new CustomEvent('start_audio_call', {
-                        detail: { virtualNumber: selectedConnection.user.virtualNumber }
+                      window.dispatchEvent(new CustomEvent('start_call', {
+                        detail: { virtualNumber: selectedConnection.user.virtualNumber, type: 'audio' }
                       }));
                     }}
                     className="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 rounded-full transition shadow-sm"
                     title="Audio Call"
                   >
                     <Phone className="w-5 h-5 fill-current opacity-20" />
+                  </button>
+                  <button 
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('start_call', {
+                        detail: { virtualNumber: selectedConnection.user.virtualNumber, type: 'video' }
+                      }));
+                    }}
+                    className="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 rounded-full transition shadow-sm"
+                    title="Video Call"
+                  >
+                    <Video className="w-5 h-5 fill-current opacity-20" />
                   </button>
                   <button className="p-2.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-full transition hidden sm:flex">
                     <Info className="w-5 h-5" />
