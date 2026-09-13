@@ -91,66 +91,81 @@ export default function CallsPage() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Call History</h2>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold tracking-tight text-slate-900">Recent Calls</h2>
+              <p className="text-sm text-slate-500">Your secure voice and video history.</p>
+            </div>
+            <div className="hidden sm:block">
+              <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-full border border-indigo-100">
+                End-to-End Encrypted
+              </span>
+            </div>
           </div>
 
           {calls.length === 0 ? (
-            <div className="p-12 text-center text-gray-500">
-              <PhoneCall className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg font-medium">No call history</p>
-              <p className="text-sm mt-2">Start a call to see your history here</p>
+            <div className="p-16 flex flex-col items-center justify-center text-slate-400">
+              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                <PhoneCall className="w-8 h-8 text-slate-300" />
+              </div>
+              <p className="text-lg font-semibold text-slate-900">No calls yet</p>
+              <p className="text-sm mt-1">Start a secure call to see your history here</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-slate-100">
               {calls.map((call) => (
-                <div key={call.id} className="p-4 hover:bg-gray-50 transition">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                        {call.callerId === user?.id ? (
-                          <PhoneOutgoing className="w-6 h-6 text-green-600" />
-                        ) : (
-                          <PhoneIncoming className="w-6 h-6 text-blue-600" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {call.callerId === user?.id
-                            ? `To: ${call.callee?.displayName || call.callee?.virtualNumber}`
-                            : `From: ${call.caller?.displayName || call.caller?.virtualNumber}`}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {call.group?.name || '1:1 Call'} • {call.callType}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          call.status === 'ended'
-                            ? 'bg-gray-100 text-gray-800'
-                            : call.status === 'missed'
-                            ? 'bg-red-100 text-red-800'
-                            : call.status === 'accepted'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}
-                      >
-                        {call.status}
-                      </span>
-                      {call.durationSeconds && (
-                        <span className="text-sm text-gray-500">
-                          {Math.floor(call.durationSeconds / 60)}m {call.durationSeconds % 60}s
-                        </span>
+                <div key={call.id} className="p-4 sm:p-5 hover:bg-slate-50 transition group flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-sm border ${call.callerId === user?.id ? 'bg-emerald-50 border-emerald-100' : 'bg-indigo-50 border-indigo-100'}`}>
+                      {call.callerId === user?.id ? (
+                        <PhoneOutgoing className="w-5 h-5 text-emerald-600" />
+                      ) : (
+                        <PhoneIncoming className="w-5 h-5 text-indigo-600" />
                       )}
-                      <span className="text-sm text-gray-500">
-                        {new Date(call.startedAt).toLocaleDateString()}
-                      </span>
                     </div>
+                    <div>
+                      <p className="font-bold text-slate-900 text-base">
+                        {call.callerId === user?.id
+                          ? call.callee?.displayName || call.callee?.virtualNumber
+                          : call.caller?.displayName || call.caller?.virtualNumber}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs font-medium text-slate-500 capitalize px-2 py-0.5 bg-slate-100 rounded-md">
+                          {call.callType} call
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          {new Date(call.startedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 self-end sm:self-auto pl-16 sm:pl-0">
+                    <span
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold tracking-wide ${
+                        call.status === 'ended'
+                          ? 'bg-slate-100 text-slate-600'
+                          : call.status === 'missed'
+                          ? 'bg-red-50 text-red-600 border border-red-100'
+                          : call.status === 'accepted'
+                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                          : 'bg-amber-50 text-amber-600 border border-amber-100'
+                      }`}
+                    >
+                      {call.status.toUpperCase()}
+                    </span>
+                    {call.durationSeconds ? (
+                      <span className="text-sm font-medium text-slate-500 w-16 text-right">
+                        {Math.floor(call.durationSeconds / 60)}m {call.durationSeconds % 60}s
+                      </span>
+                    ) : (
+                      <span className="text-sm font-medium text-slate-400 w-16 text-right">-</span>
+                    )}
+                    <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition opacity-0 group-hover:opacity-100">
+                      <Phone className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               ))}
