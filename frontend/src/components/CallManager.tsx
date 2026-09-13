@@ -186,7 +186,7 @@ export default function CallManager() {
       const offer = await peerConnection.current.createOffer();
       await peerConnection.current.setLocalDescription(offer);
       
-      ws.current.send(JSON.stringify({
+      ws.current?.send(JSON.stringify({
         type: 'webrtc_offer',
         callId,
         signal: offer
