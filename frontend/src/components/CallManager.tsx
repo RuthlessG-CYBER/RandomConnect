@@ -118,7 +118,7 @@ export default function CallManager() {
             await peerConnection.current?.setLocalDescription(answer);
             ws.current?.send(JSON.stringify({
               type: 'webrtc_answer',
-              targetUserId: data.fromUserId,
+              callId: callState!.id,
               signal: answer
             }));
             break;
@@ -160,9 +160,11 @@ export default function CallManager() {
 
     peerConnection.current.onicecandidate = (event) => {
       if (event.candidate && ws.current) {
-        // Find target user id (we'd need to look this up or pass it, 
-        // for 1v1 we can rely on the backend to route if we pass the callId, but backend expects targetUserId.
-        // As a shortcut, we send it to the server with callId and let the server broadcast to participants)
+        ws.current.send(JSON.stringify({
+          type: 'webrtc_ice',
+          callId,
+          signal: event.candidate
+        }));
       }
     };
 
@@ -170,9 +172,11 @@ export default function CallManager() {
       const offer = await peerConnection.current.createOffer();
       await peerConnection.current.setLocalDescription(offer);
       
-      // Need targetUserId here...
-      // Since backend requires targetUserId for webrtc signals, we need a slight adjustment
-      // to the backend or fetch it.
+      ws.current.send(JSON.stringify({
+        type: 'webrtc_offer',
+        callId,
+        signal: offer
+      }));
     }
   };
 

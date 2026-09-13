@@ -10,6 +10,7 @@ import type { Connection, Message } from '@/types';
 export default function MessagesPage() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const _hasHydrated = useAuthStore((state) => state._hasHydrated);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [selectedConnection, setSelectedConnection] = useState<Connection | null>(null);
   const selectedConnectionIdRef = useRef<string | null>(null);
@@ -85,7 +86,7 @@ export default function MessagesPage() {
     return () => {
       ws.close();
     };
-  }, [user, router]);
+  }, [_hasHydrated, user, router]);
 
   const selectConnection = (connection: Connection) => {
     setSelectedConnection(connection);

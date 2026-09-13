@@ -21,6 +21,7 @@ const actions = [
 export default function DashboardPage() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const _hasHydrated = useAuthStore((state) => state._hasHydrated);
   const logout = useAuthStore((state) => state.logout);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -36,9 +37,10 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    if (!_hasHydrated) return;
     if (!user) { router.push('/login'); return; }
     void fetchData();
-  }, [user, router]);
+  }, [_hasHydrated, user, router]);
 
   const handleLogout = async () => { try { await api.post('/auth/logout'); } catch (error) { console.error('Logout error:', error); } logout(); router.push('/login'); };
   const copyVirtualNumber = async () => { if (!user?.virtualNumber) return; await navigator.clipboard.writeText(user.virtualNumber); setCopied(true); setTimeout(() => setCopied(false), 2000); };

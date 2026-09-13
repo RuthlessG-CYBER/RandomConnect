@@ -10,6 +10,7 @@ import type { Connection } from '@/types';
 export default function ConnectionsPage() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const _hasHydrated = useAuthStore((state) => state._hasHydrated);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +40,7 @@ export default function ConnectionsPage() {
       return;
     }
     fetchConnections();
-  }, [user, router]);
+  }, [_hasHydrated, user, router]);
 
   if (loading) {
     return (

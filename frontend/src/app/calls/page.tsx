@@ -10,6 +10,7 @@ import type { Call, Connection } from '@/types';
 export default function CallsPage() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const _hasHydrated = useAuthStore((state) => state._hasHydrated);
   const [calls, setCalls] = useState<Call[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [showCallModal, setShowCallModal] = useState(false);
@@ -58,7 +59,7 @@ export default function CallsPage() {
     }
     fetchCalls();
     fetchConnections();
-  }, [user, router]);
+  }, [_hasHydrated, user, router]);
 
   if (loading) {
     return (

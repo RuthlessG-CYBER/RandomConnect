@@ -10,6 +10,7 @@ import type { Group, GroupInvite } from '@/types';
 export default function GroupsPage() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const _hasHydrated = useAuthStore((state) => state._hasHydrated);
   const [groups, setGroups] = useState<Group[]>([]);
   const [invites, setInvites] = useState<GroupInvite[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -100,7 +101,7 @@ export default function GroupsPage() {
     }
     fetchGroups();
     fetchInvites();
-  }, [user, router]);
+  }, [_hasHydrated, user, router]);
 
   if (loading) {
     return (
