@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/api";
@@ -32,16 +32,16 @@ export default function CallsPage() {
   const [callType, setCallType] = useState<'audio' | 'video'>('audio');
   const [loading, setLoading] = useState(true);
 
-  const fetchCalls = async () => {
+  const fetchCalls = useCallback(async () => {
     try {
       const response = await api.get('/calls/history');
       setCalls(response.data);
     } catch (error) {
       console.error('Failed to fetch calls:', error);
     }
-  };
+  }, []);
 
-  const fetchConnections = async () => {
+  const fetchConnections = useCallback(async () => {
     try {
       const response = await api.get('/connections');
       setConnections(response.data.filter((c: Connection) => c.status === 'active'));
@@ -50,7 +50,7 @@ export default function CallsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const initiateCall = async () => {
     if (!selectedConnection) return;
@@ -72,7 +72,7 @@ export default function CallsPage() {
     }
     fetchCalls();
     fetchConnections();
-  }, [_hasHydrated, user, router]);
+  }, [_hasHydrated, user, router, fetchCalls, fetchConnections]);
 
   if (loading) {
     return (

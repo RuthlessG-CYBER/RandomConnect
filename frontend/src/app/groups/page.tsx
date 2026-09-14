@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
@@ -21,7 +21,7 @@ export default function GroupsPage() {
   const [inviting, setInviting] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const fetchGroups = async () => {
+  const fetchGroups = useCallback(async () => {
     try {
       const response = await api.get('/groups');
       setGroups(response.data);
@@ -30,16 +30,16 @@ export default function GroupsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchInvites = async () => {
+  const fetchInvites = useCallback(async () => {
     try {
       const response = await api.get('/groups/invites/me');
       setInvites(response.data);
     } catch (error) {
       console.error('Failed to fetch invites:', error);
     }
-  };
+  }, []);
 
   const createGroup = async () => {
     if (!newGroupName.trim()) return;
@@ -58,7 +58,9 @@ export default function GroupsPage() {
     try {
       await api.post(`/groups/invites/${inviteId}/respond`, { accept });
       await fetchInvites();
-      await fetchGroups();
+      if (accept) {
+        await fetchGroups();
+      }
     } catch (error) {
       console.error('Failed to respond to invite:', error);
     }
@@ -101,7 +103,7 @@ export default function GroupsPage() {
     }
     fetchGroups();
     fetchInvites();
-  }, [_hasHydrated, user, router]);
+  }, [_hasHydrated, user, router, fetchGroups, fetchInvites]);
 
   if (loading) {
     return (

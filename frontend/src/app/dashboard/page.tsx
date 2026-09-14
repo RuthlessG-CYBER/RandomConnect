@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/api";
@@ -9,19 +9,23 @@ import {
   Phone,
   MessageSquare,
   Users,
+  Shield,
+  Video,
+  Settings2,
   Copy,
   Check,
-  ShieldCheck,
-  Flame,
+  PhoneIncoming,
   ArrowRight,
-  Shield,
+  ShieldAlert,
+  Clock,
+  Key,
+  Globe,
   Wifi,
   CloudOff,
   Timer,
   Lock,
-  Download,
-  Settings2,
-  Bell
+  Flame,
+  ShieldCheck
 } from "lucide-react";
 import type { Connection, Group, GroupInvite } from "@/types";
 
@@ -36,7 +40,7 @@ export default function DashboardPage() {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [connectionsRes, groupsRes, invitesRes] = await Promise.all([
         api.get("/connections"),
@@ -51,13 +55,13 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!_hasHydrated) return;
     if (!user) return; // Wait for ClerkSync to populate user
     fetchData();
-  }, [_hasHydrated, user, router]);
+  }, [_hasHydrated, user, fetchData]);
 
   const copyVirtualNumber = async () => {
     if (!user?.virtualNumber) return;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
@@ -35,7 +35,7 @@ export default function MessagesPage() {
     scrollToBottom();
   }, [messages]);
 
-  const fetchConnections = async () => {
+  const fetchConnections = useCallback(async () => {
     try {
       const response = await api.get('/connections');
       setConnections(response.data);
@@ -44,16 +44,16 @@ export default function MessagesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchMessages = async (connectionId: string) => {
+  const fetchMessages = useCallback(async (connectionId: string) => {
     try {
       const response = await api.get(`/messages/connection/${connectionId}`);
       setMessages(response.data);
     } catch (error) {
       console.error('Failed to fetch messages:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!_hasHydrated) return;
@@ -108,7 +108,7 @@ export default function MessagesPage() {
       activeWs.onclose = null;
       activeWs.close();
     };
-  }, [_hasHydrated, user, router]);
+  }, [_hasHydrated, user, router, fetchConnections]);
 
   const selectConnection = (connection: Connection) => {
     setSelectedConnection(connection);

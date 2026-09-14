@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/api";
@@ -14,7 +14,7 @@ export default function ConnectionsPage() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchConnections = async () => {
+  const fetchConnections = useCallback(async () => {
     try {
       const response = await api.get("/connections");
       setConnections(response.data);
@@ -23,7 +23,7 @@ export default function ConnectionsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const updateConnectionStatus = async (connectionId: string, status: "blocked" | "removed") => {
     try {
@@ -40,7 +40,7 @@ export default function ConnectionsPage() {
       return;
     }
     fetchConnections();
-  }, [_hasHydrated, user, router]);
+  }, [_hasHydrated, user, router, fetchConnections]);
 
   if (loading) {
     return (
