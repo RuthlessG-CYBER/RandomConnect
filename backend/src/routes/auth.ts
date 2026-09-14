@@ -96,6 +96,90 @@ router.post('/signup', async (req, res) => {
   }
 });
 
+// Clerk Sync
+router.post('/clerk-sync', async (req, res) => {
+  try {
+    const { clerkId, displayName } = req.body;
+    
+    if (!clerkId) {
+      return res.status(400).json({ error: 'clerkId is required' });
+    }
+
+    let user = await prisma.user.findUnique({
+      where: { id: clerkId }
+    });
+
+    if (!user) {
+      // Check if we need to initialize the number pool
+      await initializeNumberPool();
+
+      user = await prisma.$transaction(async (tx) => {
+        await tx.user.create({
+          data: {
+            id: clerkId,
+            virtualNumber: `pending-${clerkId}`,
+            displayName: displayName || null,
+            passwordHash: 'CLERK_AUTH',
+          },
+        });
+        const virtualNumber = await assignUserVirtualNumber(tx, clerkId);
+        return tx.user.update({
+          where: { id: clerkId },
+          data: { virtualNumber },
+        });
+      });
+      
+      await prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'clerk_signup',
+          metadata: { virtualNumber: user.virtualNumber },
+          ipAddress: req.ip
+        }
+      });
+    }
+
+    if (user.status !== 'active') {
+      return res.status(401).json({ error: 'Account is not active' });
+    }
+
+    // Generate tokens
+    const accessToken = generateAccessToken({
+      userId: user.id,
+      virtualNumber: user.virtualNumber
+    });
+
+    const refreshToken = generateRefreshToken({
+      userId: user.id,
+      virtualNumber: user.virtualNumber
+    });
+
+    // Store refresh token
+    const refreshTokenHash = await bcrypt.hash(refreshToken, 12);
+    await prisma.session.create({
+      data: {
+        userId: user.id,
+        refreshTokenHash,
+        deviceId: req.headers['user-agent'] || 'unknown',
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      }
+    });
+
+    res.json({
+      user: {
+        id: user.id,
+        virtualNumber: user.virtualNumber,
+        displayName: user.displayName
+      },
+      accessToken,
+      refreshToken
+    });
+  } catch (error) {
+    console.error('Clerk sync error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Login
 router.post('/login', async (req, res) => {
   try {

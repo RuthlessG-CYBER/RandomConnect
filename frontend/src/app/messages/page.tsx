@@ -4,7 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
-import { MessageSquare, Send, Phone, Video, ArrowLeft, Plus, Search, MoreVertical, Info } from 'lucide-react';
+import { UserButton } from '@clerk/nextjs';
+import { MessageSquare, Send, Phone, Video, ArrowLeft, Plus, Search, MoreVertical, Info, Timer, Mic, Paperclip, ShieldCheck, CheckCheck, Lock, ArrowUp, Shield, MessageSquarePlus, Key, Check } from 'lucide-react';
 import type { Connection, Message } from '@/types';
 
 export default function MessagesPage() {
@@ -100,7 +101,7 @@ export default function MessagesPage() {
       return ws;
     };
 
-    let activeWs = connectWebSocket();
+    const activeWs = connectWebSocket();
 
     return () => {
       clearTimeout(reconnectTimer);
@@ -163,48 +164,46 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="h-screen bg-slate-50 flex flex-col font-sans overflow-hidden text-slate-900">
-      {/* Top Header */}
-      <header className="h-16 flex-none bg-white border-b border-slate-200/60 shadow-sm z-10">
-        <div className="h-full max-w-screen-2xl mx-auto px-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => router.push('/dashboard')} className="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Messages</h1>
+    <div className="flex-1 bg-[#f8f9fd] flex flex-col font-sans overflow-hidden text-slate-900">
+
+      {/* Top Sub-Header */}
+      <header className="h-16 flex-none bg-white border-b border-slate-200/60 shadow-sm z-20 flex items-center justify-between px-4 sm:px-6">
+        <div className="flex items-center gap-4">
+          <h1 className="text-[22px] font-bold tracking-tight text-slate-900">Messages</h1>
+          <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-semibold tracking-wide">
+            3 unread
+          </span>
+          <div className="hidden lg:flex items-center gap-1 ml-4 bg-slate-100/80 p-1 ">
+            <button className="px-3 py-1  bg-white text-slate-900 shadow-sm text-[12px] font-medium transition-all">Direct</button>
+            <button className="px-3 py-1  text-slate-500 hover:text-slate-900 text-[12px] font-medium transition-all">Relays</button>
+            <button className="px-3 py-1  text-slate-500 hover:text-slate-900 text-[12px] font-medium transition-all">Ephemeral</button>
           </div>
-          <div className="flex items-center gap-3">
-             <div className="hidden sm:flex items-center bg-slate-100 px-3 py-1.5 rounded-full text-sm font-medium text-slate-600">
-               <div className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></div>
-               {user?.virtualNumber}
-             </div>
-          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setShowNewChat(true)} className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-all shadow-sm active:scale-95">
+            <MessageSquarePlus className="w-4 h-4" />
+            <span className="hidden sm:inline">New Secure Chat</span>
+          </button>
         </div>
       </header>
 
       {/* Main App Container */}
-      <div className="flex-1 max-w-screen-2xl w-full mx-auto bg-white sm:my-6 sm:rounded-2xl sm:border border-slate-200/60 shadow-sm overflow-hidden flex">
+      <div className="flex-1 w-full flex overflow-hidden bg-white z-10">
         
         {/* Left Sidebar - Connection List */}
-        <div className={`w-full sm:w-[320px] lg:w-[380px] flex flex-col border-r border-slate-200/60 ${selectedConnection && !showNewChat ? 'hidden sm:flex' : 'flex'}`}>
-          <div className="p-4 border-b border-slate-100 flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <div className={`w-full sm:w-[320px] lg:w-[380px] flex-shrink-0 flex flex-col bg-white border-r border-slate-200/60 z-10 ${selectedConnection && !showNewChat ? 'hidden sm:flex' : 'flex'}`}>
+          <div className="p-4">
+            <div className="relative flex items-center w-full">
+              <Search className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
               <input 
                 type="text" 
-                placeholder="Search chats..." 
-                className="w-full pl-9 pr-4 py-2 bg-slate-100 border-transparent focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded-xl text-sm transition outline-none"
+                placeholder="Search alias, virtual line or key..." 
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-0 text-slate-900 rounded-full text-[13px] font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all shadow-sm inset-ring-1 inset-ring-slate-100"
               />
             </div>
-            <button
-              onClick={() => setShowNewChat(true)}
-              className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 rounded-xl transition"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto divide-y-0">
             {connections.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-slate-400 p-8 text-center space-y-3">
                 <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center">
@@ -214,48 +213,71 @@ export default function MessagesPage() {
                 <p className="text-sm">Start a new chat to begin connecting securely.</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-50/50 p-2">
-                {connections.map((connection) => (
-                  <button
-                    key={connection.id}
-                    onClick={() => selectConnection(connection)}
-                    className={`w-full p-3 rounded-xl flex items-center gap-3 text-left transition ${
-                      selectedConnection?.id === connection.id 
-                        ? 'bg-indigo-50/80 ring-1 ring-indigo-100' 
-                        : 'hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="relative">
-                      <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center shadow-inner text-white font-semibold text-lg">
-                        {connection.user.displayName?.[0] || connection.user.virtualNumber[0]}
+              <div className="flex flex-col">
+                {connections.map((connection) => {
+                  const isActive = selectedConnection?.id === connection.id;
+                  return (
+                    <button
+                      key={connection.id}
+                      onClick={() => selectConnection(connection)}
+                      className={`group relative flex items-start gap-3 p-3.5 cursor-pointer transition-colors text-left ${isActive ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}`}
+                    >
+                      {isActive && <span className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-600 rounded-r"></span>}
+                      
+                      <div className="relative flex-shrink-0 mt-0.5">
+                        <div className="w-11 h-11 bg-gradient-to-br from-slate-800 to-slate-900 rounded-full flex items-center justify-center shadow-sm text-white font-semibold text-lg">
+                          {connection.user.displayName?.[0] || connection.user.virtualNumber[0]}
+                        </div>
+                        <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white"></span>
                       </div>
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-baseline mb-0.5">
-                        <p className="font-semibold text-slate-900 truncate">
-                          {connection.user.displayName || connection.user.virtualNumber}
-                        </p>
-                        <p className="text-xs text-slate-400 font-medium whitespace-nowrap ml-2">
-                          12:34 PM
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1 mb-0.5">
+                          <span className="font-semibold text-[15px] text-slate-900 truncate">
+                            {connection.user.displayName || connection.user.virtualNumber}
+                          </span>
+                          <span className="text-[11px] font-medium text-indigo-600 flex-shrink-0">
+                            10:42 AM
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[13px] font-mono font-medium text-slate-500">{connection.user.virtualNumber}</span>
+                          <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-slate-400">
+                            <Lock className="w-3 h-3 text-emerald-600" />
+                            <span>Signal v4</span>
+                          </span>
+                        </div>
+                        <p className="text-[13px] text-slate-600 truncate">
+                          {connection.status === 'active' ? 'Secure session established.' : 'Pending connection...'}
                         </p>
                       </div>
-                      <p className={`text-sm truncate ${selectedConnection?.id === connection.id ? 'text-indigo-600' : 'text-slate-500'}`}>
-                        {connection.status === 'active' ? 'Connected securely' : 'Pending request...'}
-                      </p>
-                    </div>
-                  </button>
-                ))}
+                      
+                      <div className="flex flex-col items-end justify-between self-stretch flex-shrink-0">
+                        {isActive && <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold shadow-sm">2</span>}
+                        {!isActive && connection.status === 'active' && <CheckCheck className="w-4 h-4 text-indigo-500" />}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
+          </div>
+          
+          {/* Left Rail Security Footer */}
+          <div className="p-3 bg-slate-50 flex items-center justify-between border-t border-slate-100">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-emerald-600" />
+              <span className="text-[11px] font-medium text-slate-600">Virtual Core: Active (Isolated VM)</span>
+            </div>
+            <span className="text-[11px] font-bold text-slate-400">v4.1.8</span>
           </div>
         </div>
 
         {/* Right Area - Chat Window */}
-        <div className={`flex-1 flex flex-col bg-[#fdfdfd] relative ${(!selectedConnection && !showNewChat) ? 'hidden sm:flex' : 'flex'}`}>
+        <div className={`flex-1 flex flex-col bg-[#f7f8fc] relative ${(!selectedConnection && !showNewChat) ? 'hidden sm:flex' : 'flex'}`}>
           {showNewChat ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8">
-              <div className="max-w-md w-full bg-white border border-slate-200/60 rounded-2xl p-8 shadow-xl shadow-slate-200/20">
+              <div className="max-w-md w-full bg-white border border-slate-200/60  p-8 shadow-xl shadow-slate-200/20">
                 <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-6">
                   <MessageSquare className="w-6 h-6 text-indigo-600" />
                 </div>
@@ -269,19 +291,19 @@ export default function MessagesPage() {
                       placeholder="XXX-XXX-XXXX"
                       value={newChatNumber}
                       onChange={(e) => setNewChatNumber(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none font-medium transition"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200  focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none font-medium transition"
                       pattern="\d{3}-\d{3}-\d{4}"
                     />
                   </div>
                   <button
                     onClick={startNewChat}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-xl transition shadow-md shadow-indigo-600/20"
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3  transition shadow-md shadow-indigo-600/20"
                   >
                     Send Request
                   </button>
                   <button
                     onClick={() => setShowNewChat(false)}
-                    className="w-full bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium py-3 rounded-xl transition"
+                    className="w-full bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium py-3  transition"
                   >
                     Cancel
                   </button>
@@ -290,23 +312,40 @@ export default function MessagesPage() {
             </div>
           ) : selectedConnection ? (
             <>
+              {/* Ambient Glow Orbs */}
+              <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-cyan-400/10 blur-3xl pointer-events-none"></div>
+              <div className="absolute bottom-10 left-10 w-96 h-96 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none"></div>
+
               {/* Chat Header */}
-              <div className="h-18 px-6 border-b border-slate-100 bg-white/80 backdrop-blur flex items-center justify-between sticky top-0 z-10">
-                <div className="flex items-center gap-4">
+              <div className="h-16 px-6 bg-white/90 backdrop-blur-md flex items-center justify-between shadow-sm border-b border-slate-100 z-10 relative">
+                <div className="flex items-center gap-3.5">
                   <button onClick={() => setSelectedConnection(null)} className="sm:hidden p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-500 transition">
                     <ArrowLeft className="w-5 h-5" />
                   </button>
-                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-sm">
-                    {selectedConnection.user.displayName?.[0] || selectedConnection.user.virtualNumber[0]}
+                  <div className="relative">
+                    <div className="w-10 h-10 bg-gradient-to-br from-slate-800 to-slate-900 rounded-full flex items-center justify-center text-white font-bold shadow-sm">
+                      {selectedConnection.user.displayName?.[0] || selectedConnection.user.virtualNumber[0]}
+                    </div>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 absolute bottom-0 right-0 ring-2 ring-white"></span>
                   </div>
                   <div>
-                    <h2 className="font-bold text-slate-900 text-lg leading-tight">
-                      {selectedConnection.user.displayName || selectedConnection.user.virtualNumber}
-                    </h2>
-                    <p className="text-xs font-medium text-emerald-500 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                      Online
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <h2 className="font-semibold text-slate-900 text-[17px] leading-tight">
+                        {selectedConnection.user.displayName || selectedConnection.user.virtualNumber}
+                      </h2>
+                      <span className="text-[13px] font-semibold text-indigo-600 font-mono">
+                        {selectedConnection.user.virtualNumber}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-medium">
+                        <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>End-to-End Encrypted (Signal Protocol)</span>
+                      </span>
+                      <span className="text-slate-500 text-[10px] font-mono font-medium hidden md:inline">
+                        FP: 70AF · 91BC · 04EE
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -316,10 +355,10 @@ export default function MessagesPage() {
                         detail: { virtualNumber: selectedConnection.user.virtualNumber, type: 'audio' }
                       }));
                     }}
-                    className="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 rounded-full transition shadow-sm"
+                    className="w-9 h-9 rounded-full bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 flex items-center justify-center transition-colors"
                     title="Audio Call"
                   >
-                    <Phone className="w-5 h-5 fill-current opacity-20" />
+                    <Phone className="w-4 h-4" />
                   </button>
                   <button 
                     onClick={() => {
@@ -327,59 +366,65 @@ export default function MessagesPage() {
                         detail: { virtualNumber: selectedConnection.user.virtualNumber, type: 'video' }
                       }));
                     }}
-                    className="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 rounded-full transition shadow-sm"
+                    className="w-9 h-9 rounded-full bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 flex items-center justify-center transition-colors"
                     title="Video Call"
                   >
-                    <Video className="w-5 h-5 fill-current opacity-20" />
+                    <Video className="w-4 h-4" />
                   </button>
-                  <button className="p-2.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-full transition hidden sm:flex">
-                    <Info className="w-5 h-5" />
+                  <button className="w-9 h-9 rounded-full bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 items-center justify-center transition-colors hidden sm:flex" title="Safety Keys & Session Inspection">
+                    <Key className="w-4 h-4" />
                   </button>
-                  <button className="p-2.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-full transition">
-                    <MoreVertical className="w-5 h-5" />
+                  <button className="w-9 h-9 rounded-full bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900 flex items-center justify-center transition-colors">
+                    <MoreVertical className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-slate-50/50">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-transparent relative z-0">
+                <div className="flex items-center justify-center my-4">
+                  <div className="px-3 py-1 rounded-full bg-slate-200/50 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
+                    Today · Isolated Cryptographic Session
+                  </div>
+                </div>
+                
                 {messages.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-4">
-                    <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100">
-                      <MessageSquare className="w-8 h-8 text-indigo-200" />
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-4 pt-10">
+                    <div className="w-20 h-20 bg-white rounded-3xl rotate-3 flex items-center justify-center shadow-sm ring-1 ring-slate-100">
+                      <MessageSquare className="w-8 h-8 text-indigo-300 -rotate-3" />
                     </div>
                     <div className="text-center">
-                      <p className="font-medium text-slate-900">Start the conversation</p>
-                      <p className="text-sm mt-1">End-to-end encrypted connection established.</p>
+                      <p className="font-semibold text-slate-700">Start the conversation</p>
+                      <p className="text-sm mt-1 text-slate-500">End-to-end encrypted connection established.</p>
                     </div>
                   </div>
                 ) : (
                   messages.map((message, index) => {
                     const isMe = message.senderId === user?.id;
                     const showAvatar = !isMe && (index === 0 || messages[index - 1].senderId !== message.senderId);
+                    const isLastInGroup = index === messages.length - 1 || messages[index + 1].senderId !== message.senderId;
                     
                     return (
-                      <div key={message.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} group`}>
-                        <div className="flex max-w-[85%] sm:max-w-[70%] items-end gap-2">
-                          {!isMe && (
-                            <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold text-white bg-gradient-to-br from-indigo-500 to-purple-600 shadow-sm ${!showAvatar && 'invisible'}`}>
+                      <div key={message.id} className={`flex ${isMe ? 'flex-col items-end max-w-lg ml-auto' : 'items-end gap-2 max-w-lg mr-auto'}`}>
+                        {!isMe && (
+                          <div className={`relative w-7 h-7 flex-shrink-0 mb-1 ${!showAvatar && 'invisible'}`}>
+                            <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-[10px] font-bold text-white shadow-sm">
                               {selectedConnection.user.displayName?.[0] || selectedConnection.user.virtualNumber[0]}
                             </div>
-                          )}
-                          
-                          <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                            <div
-                              className={`px-5 py-3 rounded-2xl shadow-sm ${
-                                isMe
-                                  ? 'bg-indigo-600 text-white rounded-br-sm'
-                                  : 'bg-white text-slate-800 border border-slate-100 rounded-bl-sm'
-                              }`}
-                            >
-                              <p className="leading-relaxed whitespace-pre-wrap">{message.body}</p>
-                            </div>
-                            <span className="text-[10px] font-medium text-slate-400 mt-1.5 px-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              {new Date(message.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                          </div>
+                        )}
+                        
+                        <div
+                          className={`p-3.5 text-[14px] leading-relaxed shadow-sm ${
+                            isMe
+                              ? 'bg-slate-800 text-white  rounded-br-sm'
+                              : 'bg-white text-slate-900  rounded-bl-sm'
+                          }`}
+                        >
+                          <p className="whitespace-pre-wrap">{message.body}</p>
+                          <div className={`flex items-center gap-1.5 mt-1.5 text-[11px] font-medium ${isMe ? 'text-slate-400 justify-end' : 'text-slate-400 justify-end'}`}>
+                            <span>{new Date(message.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            {isMe && <CheckCheck className="w-4 h-4 text-indigo-400" />}
                           </div>
                         </div>
                       </div>
@@ -389,12 +434,26 @@ export default function MessagesPage() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input Area */}
-              <div className="p-4 bg-white border-t border-slate-100">
-                <div className="max-w-4xl mx-auto flex items-end gap-3 bg-slate-50 border border-slate-200/60 rounded-3xl p-1.5 shadow-inner">
-                  <div className="flex-1">
-                    <textarea
-                      placeholder="Message..."
+              {/* Bottom Floating Glass Input Pill Bar */}
+              <div className="px-6 pb-5 pt-2 relative z-10">
+                <div className="bg-white/90 backdrop-blur-md rounded-3xl p-1.5 shadow-sm border border-slate-200/60 flex items-center gap-2 focus-within:ring-2 focus-within:ring-indigo-500/40 transition-all">
+                  <button className="w-9 h-9 flex-shrink-0 rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-colors" title="Attach file">
+                    <Paperclip className="w-5 h-5" />
+                  </button>
+                  
+                  <div className="hidden md:flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-emerald-600 text-[11px] font-medium">
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>E2EE Active</span>
+                  </div>
+                  
+                  <button className="flex items-center gap-1 px-2 py-1 rounded-full text-slate-500 hover:bg-slate-100 transition-colors" title="Self-destruct timer">
+                    <Timer className="w-4 h-4 text-red-500" />
+                    <span className="text-[13px] font-medium">24h</span>
+                  </button>
+                  
+                  <div className="flex-1 min-w-0">
+                    <input
+                      placeholder={`Message ${selectedConnection.user.virtualNumber}...`}
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyDown={(e) => {
@@ -403,22 +462,21 @@ export default function MessagesPage() {
                           sendMessage();
                         }
                       }}
-                      className="w-full max-h-32 min-h-[44px] bg-transparent resize-none py-3 px-4 outline-none text-slate-900 placeholder:text-slate-400"
-                      rows={1}
+                      className="w-full bg-transparent border-0 py-2 px-2 text-slate-900 text-[14px] placeholder:text-slate-400 focus:outline-none"
                     />
                   </div>
+                  
+                  <button className="w-9 h-9 flex-shrink-0 rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-colors">
+                    <Mic className="w-5 h-5" />
+                  </button>
+                  
                   <button
                     onClick={sendMessage}
                     disabled={sending || !newMessage.trim()}
-                    className="mb-1 mr-1 p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition shadow-sm disabled:opacity-50 disabled:scale-95 disabled:cursor-not-allowed flex-shrink-0"
+                    className="w-10 h-10 flex-shrink-0 rounded-full bg-slate-900 text-white hover:bg-slate-800 flex items-center justify-center transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Send className="w-5 h-5 pl-0.5" />
+                    <ArrowUp className="w-5 h-5" />
                   </button>
-                </div>
-                <div className="text-center mt-2">
-                  <span className="text-[10px] text-slate-400 font-medium flex items-center justify-center gap-1">
-                    Press Enter to send <ArrowLeft className="w-2 h-2 rotate-90" />
-                  </span>
                 </div>
               </div>
             </>

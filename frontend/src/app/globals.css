@@ -5,6 +5,32 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Override Indigo with Charcoal (from login page) */
+  --color-indigo-50: #f6f6f6;
+  --color-indigo-100: #e7e7e7;
+  --color-indigo-200: #d1d1d1;
+  --color-indigo-300: #b0b0b0;
+  --color-indigo-400: #888888;
+  --color-indigo-500: #6d6d6d;
+  --color-indigo-600: #5b5b5b;
+  --color-indigo-700: #4f4f4f;
+  --color-indigo-800: #454545;
+  --color-indigo-900: #3d3d3d;
+  --color-indigo-950: #262626;
+
+  /* Override Cyan with Sage Green (from login page) */
+  --color-cyan-50: #f4f7f5;
+  --color-cyan-100: #e4efe7;
+  --color-cyan-200: #c9ded0;
+  --color-cyan-300: #a4c5ae;
+  --color-cyan-400: #9ab8a3;
+  --color-cyan-500: #588e6a;
+  --color-cyan-600: #447153;
+  --color-cyan-700: #375b44;
+  --color-cyan-800: #2d4a38;
+  --color-cyan-900: #263e30;
+  --color-cyan-950: #14231b;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);

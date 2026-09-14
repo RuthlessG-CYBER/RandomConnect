@@ -196,7 +196,7 @@ export default function CallManager() {
     };
   }, [user]);
 
-  const setupWebRTC = async (callId: string, isInitiator: boolean) => {
+  async function setupWebRTC(callId: string, isInitiator: boolean) {
     peerConnection.current = new RTCPeerConnection({
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
     });
@@ -272,7 +272,7 @@ export default function CallManager() {
     cleanupCall();
   };
 
-  const cleanupCall = () => {
+  function cleanupCall() {
     setCallState(null);
     if (localStream.current) {
       localStream.current.getTracks().forEach(t => t.stop());
@@ -329,7 +329,7 @@ export default function CallManager() {
                 playsInline 
                 className="w-full h-full object-cover"
               />
-              <div className="absolute top-6 right-6 w-32 sm:w-48 aspect-[3/4] bg-black rounded-xl overflow-hidden shadow-2xl border-2 border-slate-800">
+              <div className="absolute top-6 right-6 w-32 sm:w-48 aspect-[3/4] bg-black  overflow-hidden shadow-2xl border-2 border-slate-800">
                 <video 
                   ref={localVideoRef} 
                   autoPlay 

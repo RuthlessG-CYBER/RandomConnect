@@ -34,3 +34,4 @@ coverage/
 .agents/
 skills-lock.json
 prd.md
+.aider*

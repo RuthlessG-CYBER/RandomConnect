@@ -1,109 +1,65 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
-import api from '@/lib/api';
-import { Phone, Lock, AlertCircle } from 'lucide-react';
+import MorphSlider from '@/components/MorphSlider';
+import { SignIn } from '@clerk/nextjs';
+
+const sliderItems = [
+  { image: 'https://images.unsplash.com/photo-1516321497487-e288fb19713f?q=80&w=1600&auto=format&fit=crop', caption: 'Private & Secure Connections' },
+  { image: 'https://images.unsplash.com/photo-1553877522-43269d4ea984?q=80&w=1600&auto=format&fit=crop', caption: 'High-Quality Video Calls' },
+  { image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1600&auto=format&fit=crop', caption: 'Exclusive Invite-Only Groups' }
+];
 
 export default function LoginPage() {
-  const router = useRouter();
-  const setAuth = useAuthStore((state) => state.setAuth);
-  const [formData, setFormData] = useState({
-    virtualNumber: '',
-    password: '',
-  });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      const response = await api.post('/auth/login', formData);
-      const { user, accessToken, refreshToken } = response.data;
-
-      setAuth(user, accessToken, refreshToken);
-      router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">RandomConnect</h1>
-          <p className="text-gray-600">Sign in with your virtual number</p>
-        </div>
+    <div className="w-[100vw] h-[100vh] min-h-[100dvh] flex flex-col md:flex-row font-sans m-0 p-0 overflow-hidden">
+      {/* Left Panel */}
+      <div className="hidden md:flex md:w-[52%] h-full relative bg-[#9ab8a3]">
+        <MorphSlider
+          items={sliderItems}
+          transition="melt"
+          intensity={0.55}
+          aberration={0.35}
+          drift={0.4}
+          autoplay
+          autoplayDelay={3}
+          radius={0}
+        />
+      </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
-            <AlertCircle className="w-5 h-5" />
-            <span className="text-sm">{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="virtualNumber" className="block text-sm font-medium text-gray-700 mb-2">
-              Virtual Number
-            </label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                id="virtualNumber"
-                type="text"
-                placeholder="XXX-XXX-XXXX"
-                value={formData.virtualNumber}
-                onChange={(e) => setFormData({ ...formData, virtualNumber: e.target.value })}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
-                required
-                pattern="\d{3}-\d{3}-\d{4}"
-                title="Format: XXX-XXX-XXXX"
-              />
-            </div>
+      {/* Right Panel */}
+      <div className="w-full md:w-[48%] bg-white flex flex-col items-center justify-center px-8 sm:px-16 lg:px-24">
+        <div className="w-full max-w-[440px] mx-auto">
+          {/* Logo */}
+          <div className="text-center mb-[40px] flex flex-col items-center">
+            <img src="/logo.jpg" alt="TikiTaka Logo" className="w-24 h-24 mb-6 shadow-md object-cover" />
+            <h1 className="text-4xl font-bold tracking-tight text-slate-900 mb-2">TikiTaka</h1>
+            <p className="text-[17px] text-[#7a7a7a]">Welcome to TikiTaka</p>
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
-                required
-              />
-            </div>
+          <div className="flex justify-center w-full">
+            <SignIn 
+              routing="hash"
+              signUpUrl="/signup" 
+              forceRedirectUrl="/dashboard"
+              appearance={{
+                elements: {
+                  rootBox: "w-full flex justify-center",
+                  cardBox: "!shadow-none !border-0 !ring-0 w-full",
+                  card: "!shadow-none !border-0 !ring-0 !bg-transparent p-0 w-full !rounded-none",
+                  headerTitle: "hidden",
+                  headerSubtitle: "hidden",
+                  dividerRow: "hidden",
+                  formButtonPrimary: "bg-[#5b5b5b] hover:bg-[#4a4a4a] text-[16px] py-3.5 rounded-full w-[240px] mx-auto block mt-4",
+                  formFieldInput: "w-full pb-3 border-0 border-b border-[#e5e5e5] focus:ring-0 focus:border-[#9ab8a3] bg-transparent text-[#333333] text-[16px] placeholder-[#d1d1d1] outline-none rounded-none shadow-none focus:outline-none",
+                  formFieldLabel: "text-[12px] font-bold text-[#b5b5b5] uppercase tracking-wide",
+                  footer: "bg-transparent",
+                  footerAction: "bg-transparent",
+                  footerActionText: "text-[#8e8e8e] text-[12px]",
+                  footerActionLink: "text-[#8ca895] font-bold hover:text-[#789180]",
+                }
+              }}
+            />
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">
-            Don't have an account?{' '}
-            <a href="/signup" className="text-indigo-600 hover:text-indigo-700 font-medium">
-              Sign up
-            </a>
-          </p>
         </div>
       </div>
     </div>

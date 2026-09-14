@@ -113,30 +113,22 @@ export default function GroupsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button onClick={() => router.push('/dashboard')} className="text-gray-600 hover:text-gray-900">
-                <ArrowLeft className="w-6 h-6" />
-              </button>
-              <h1 className="text-2xl font-bold text-gray-900">Groups</h1>
-            </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Create Group</span>
-            </button>
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-gray-900">Groups</h1>
           </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2  hover:bg-indigo-700 transition"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Create Group</span>
+          </button>
         </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Pending Invites */}
         {invites.length > 0 && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-8">
+          <div className="bg-yellow-50 border border-yellow-200  p-4 mb-8">
             <h3 className="font-medium text-yellow-800 mb-3">Pending Group Invites</h3>
             {invites.map((invite) => (
               <div key={invite.id} className="flex items-center justify-between py-2 border-b border-yellow-200 last:border-0">
@@ -149,13 +141,13 @@ export default function GroupsPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => respondToInvite(invite.id, true)}
-                    className="bg-green-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-green-600 transition"
+                    className="bg-green-500 text-white px-3 py-1  text-sm hover:bg-green-600 transition"
                   >
                     Accept
                   </button>
                   <button
                     onClick={() => respondToInvite(invite.id, false)}
-                    className="bg-red-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600 transition"
+                    className="bg-red-500 text-white px-3 py-1  text-sm hover:bg-red-600 transition"
                   >
                     Decline
                   </button>
@@ -168,14 +160,14 @@ export default function GroupsPage() {
         {/* Groups Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {groups.length === 0 ? (
-            <div className="col-span-full bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center text-gray-500">
+            <div className="col-span-full bg-white  shadow-sm border border-gray-200 p-12 text-center text-gray-500">
               <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
               <p className="text-lg font-medium">No groups yet</p>
               <p className="text-sm mt-2">Create a group to start collaborating with others</p>
             </div>
           ) : (
             groups.map((group) => (
-              <div key={group.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div key={group.id} className="bg-white  shadow-sm border border-gray-200 overflow-hidden">
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
@@ -222,7 +214,7 @@ export default function GroupsPage() {
                           setGroupToInvite(group);
                           setInviteError('');
                         }}
-                        className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition text-sm"
+                        className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white py-2  hover:bg-indigo-700 transition text-sm"
                       >
                         <UserPlus className="w-4 h-4" />
                         <span>Invite</span>
@@ -230,7 +222,7 @@ export default function GroupsPage() {
                     )}
                     <button
                       onClick={() => leaveGroup(group.id)}
-                      className="flex-1 flex items-center justify-center gap-2 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition text-sm"
+                      className="flex-1 flex items-center justify-center gap-2 bg-gray-200 text-gray-700 py-2  hover:bg-gray-300 transition text-sm"
                     >
                       <LogOut className="w-4 h-4" />
                       <span>Leave</span>
@@ -246,7 +238,7 @@ export default function GroupsPage() {
       {/* Create Group Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+          <div className="bg-white  p-6 w-full max-w-md mx-4">
             <h2 className="text-xl font-semibold mb-4">Create New Group</h2>
             <div className="space-y-4">
               <div>
@@ -258,14 +250,14 @@ export default function GroupsPage() {
                   placeholder="Enter group name"
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-3 border border-gray-300  focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                 />
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={createGroup}
                   disabled={!newGroupName.trim()}
-                  className="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-indigo-600 text-white py-3  hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Create Group
                 </button>
@@ -274,7 +266,7 @@ export default function GroupsPage() {
                     setShowCreateModal(false);
                     setNewGroupName('');
                   }}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition"
+                  className="flex-1 bg-gray-200 text-gray-700 py-3  hover:bg-gray-300 transition"
                 >
                   Cancel
                 </button>
@@ -286,7 +278,7 @@ export default function GroupsPage() {
 
       {groupToInvite && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+          <div className="bg-white  p-6 w-full max-w-md mx-4">
             <h2 className="text-xl font-semibold">Invite to {groupToInvite.name}</h2>
             <p className="text-sm text-gray-500 mt-1 mb-4">
               Members join only after accepting the invite.
@@ -301,14 +293,14 @@ export default function GroupsPage() {
               placeholder="123-456-7890"
               value={inviteNumber}
               onChange={(event) => setInviteNumber(event.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-3 border border-gray-300  focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
             />
             {inviteError && <p className="text-sm text-red-600 mt-2">{inviteError}</p>}
             <div className="flex gap-2 mt-4">
               <button
                 onClick={inviteToGroup}
                 disabled={inviting || !inviteNumber.trim()}
-                className="flex-1 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-indigo-600 text-white py-3  hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {inviting ? 'Sending…' : 'Send Invite'}
               </button>
@@ -319,7 +311,7 @@ export default function GroupsPage() {
                   setInviteError('');
                 }}
                 disabled={inviting}
-                className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition disabled:opacity-50"
+                className="flex-1 bg-gray-200 text-gray-700 py-3  hover:bg-gray-300 transition disabled:opacity-50"
               >
                 Cancel
               </button>
